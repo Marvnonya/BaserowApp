@@ -17,16 +17,27 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Ausführbare Dateien erzwingen
+      # 2️⃣ Ausführbare Dateien für Build erzwingen
       - name: Set Executable Permissions
         run: |
-          # Beispiel: falls du entrypoint.sh oder andere Skripte hast
-          chmod +x ./entrypoint.sh
-          # Optional alle .sh in scripts/:
-          if [ -d ./scripts ]; then chmod +x ./scripts/*.sh; fi
-          # Prüfen:
-          ls -l ./entrypoint.sh
-          if [ -d ./scripts ]; then ls -l ./scripts; fi
+          echo "Setze Executable Permissions …"
+
+          # Alle shell scripts im Root
+          find . -maxdepth 1 -name "*.sh" -exec chmod +x {} \;
+
+          # Alle shell scripts in scripts/ falls vorhanden
+          if [ -d ./scripts ]; then
+            find ./scripts -name "*.sh" -exec chmod +x {} \;
+          fi
+
+          # .buildozer und Unterordner falls vorhanden
+          if [ -d ./.buildozer ]; then
+            find ./.buildozer -type f -exec chmod +x {} \;
+          fi
+
+          # Prüfen
+          echo "Rechte überprüft:"
+          find . -maxdepth 2 -type f -exec ls -l {} \;
 
       # 3️⃣ Docker Image bauen
       - name: Build Docker Image
