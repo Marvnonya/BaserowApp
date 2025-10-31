@@ -40,7 +40,7 @@ jobs:
             baserow-buildozer
 
       # 5) Optional: Liste .buildozer Ordner für Debugging (falls nötig)
-      - name: Debug: show build folders (if any)
+      - name: "Debug: show build folders (if any)"
         if: always()
         run: |
           echo "Show .buildozer tree (if exists):"
