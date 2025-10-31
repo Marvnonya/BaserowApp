@@ -1,15 +1,17 @@
 #!/bin/bash
 # /usr/local/bin/entrypoint.sh
 
-# Shortlink aus Environment
-echo "SHORTLINK=${SHORTLINK:-<not-set>}"
+set -euo pipefail
 
-# Wenn wir als root starten, versuche Ownership zu setzen
+echo "[entrypoint] SHORTLINK=${SHORTLINK:-<not-set>}"
+
+# Wenn root, versuche Besitz des mount-Pfades zu übernehmen (falls möglich)
 if [ "$(id -u)" -eq 0 ]; then
-    echo "[INFO] Running as root, fixing permissions..."
+    echo "[entrypoint] running as root — attempting chown of /home/builduser/app ..."
     chown -R builduser:builduser /home/builduser/app 2>/dev/null || true
-    exec su - builduser -c "$*"
+    # Führe Kommando als builduser aus (ohne '-' um PATH intakt zu lassen)
+    exec su builduser -c "$@"
 else
-    # Bereits non-root, direkt ausführen
+    echo "[entrypoint] running as non-root (uid $(id -u)) — executing command directly"
     exec "$@"
 fi
