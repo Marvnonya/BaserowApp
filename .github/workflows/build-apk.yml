@@ -13,21 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Repository auschecken
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: System-Abhängigkeiten installieren
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            python3-dev \
-            build-essential \
-            git \
-            openjdk-17-jdk \
-            zlib1g-dev \
-            unzip \
-            curl \
-            wget
+          sudo apt-get install -y python3-dev build-essential git openjdk-17-jdk zlib1g-dev unzip curl wget
 
       - name: Python Setup
         uses: actions/setup-python@v4
@@ -40,29 +31,8 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython kivy requests python-dotenv
 
-      - name: Prüfen Buildozer Version
-        run: buildozer --version
-
-      - name: Android SDK vorbereiten
-        run: |
-          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-
-          # cmdline-tools herunterladen, falls nicht vorhanden
-          if [ ! -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
-            mkdir -p $ANDROID_HOME/cmdline-tools
-            cd $ANDROID_HOME/cmdline-tools
-            curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-            unzip commandlinetools.zip
-            mv cmdline-tools latest
-          fi
-
-          # Build-Tools, Plattformen, platform-tools installieren + Lizenzen akzeptieren
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "build-tools;36.1.0" "platforms;android-36"
-
       - name: APK bauen
-        run: buildozer android debug
+        run: buildozer android debug --accept-sdk-licenses
 
       - name: APK hochladen
         uses: actions/upload-artifact@v4
