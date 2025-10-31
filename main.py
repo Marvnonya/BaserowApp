@@ -25,7 +25,7 @@ from pathlib import Path
 session = requests.Session()
 
 # Shortlink (hardcoded)
-SHORTLINK = "https://dein-shortlink/"
+SHORTLINK = os.getenv("SHORTLINK")
 
 if SHORTLINK is None:
     raise ValueError("Kein SHORTLINK gesetzt! Bitte SHORTLINK prüfen.")
