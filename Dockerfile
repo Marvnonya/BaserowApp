@@ -1,48 +1,45 @@
+# Dockerfile
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
 
-# Systemabhängigkeiten (root)
+# --- Systemabhängigkeiten (root) ---
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-venv git wget unzip curl build-essential \
-    libssl-dev libffi-dev openjdk-17-jdk \
+    libssl-dev libffi-dev openjdk-17-jdk ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Non-root User anlegen (root)
+# --- Non-root user anlegen (root) ---
 RUN useradd -m builduser
 
-# Arbeitsverzeichnis vorbereiten (root)
-RUN mkdir -p /home/builduser/app
-# (optional) ensure /usr/local/bin exists
-RUN mkdir -p /usr/local/bin
+# Arbeitsverzeichnisse vorbereiten (root)
+RUN mkdir -p /home/builduser/app /usr/local/bin
+RUN chown -R builduser:builduser /home/builduser
 
-# Wechsel zu builduser um venv & pip-User-Install durchzuführen
+# Wechsel zu builduser, installiere venv & Buildozer in dessen Heimat
 USER builduser
 WORKDIR /home/builduser
 
-# Venv und Buildozer als builduser installieren (keine Root-Warnung später)
+# Python venv und Pakete (installiert für builduser)
 RUN python3 -m venv /home/builduser/.venv \
-    && /home/builduser/.venv/bin/pip install --upgrade pip \
+    && /home/builduser/.venv/bin/pip install --upgrade pip setuptools wheel \
     && /home/builduser/.venv/bin/pip install buildozer==1.5.0 Cython==0.29.36 kivy==2.3.1
 
+# PATH so setzen, dass buildozer aus venv verfügbar ist
 ENV PATH="/home/builduser/.venv/bin:${PATH}"
 
-# Zurück zu root, damit wir entrypoint in /usr/local/bin kopieren und chmod setzen dürfen
+# Zurück zu root, um entrypoint in /usr/local/bin zu copy/chmod zu können
 USER root
 
-# Copy entrypoint und setze Rechte (als root)
+# --- Entrypoint kopieren & ausführbar machen (root) ---
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh && chown root:root /usr/local/bin/entrypoint.sh
 
-# Optional: Eintrag für den builduser als Besitzer von /home/builduser/app
-RUN chown -R builduser:builduser /home/builduser/app || true
+# Arbeitsverzeichnis final
+WORKDIR /home/builduser/app
 
-# ENTRYPOINT & Default CMD
-# ENTRYPOINT als root ausführbar, das Script wechselt selbst auf builduser (siehe entrypoint)
+# Default ENTRYPOINT/CMD, ENTRYPOINT regelt user+chown, CMD ist Default build command
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["buildozer", "android", "debug"]
-
-# Falls du möchtest, am Ende wieder USER builduser setzen (nicht zwingend nötig)
-# USER builduser
