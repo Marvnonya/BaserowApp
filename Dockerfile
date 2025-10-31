@@ -1,27 +1,29 @@
-# Basis-Image
+# --- Basisimage ---
 FROM ubuntu:22.04
 
-# Systemabhängigkeiten installieren (läuft als root)
-RUN apt-get update && apt-get install -y \
-    python3 python3-pip python3-venv git wget unzip openjdk-17-jdk \
-    curl build-essential libssl-dev libffi-dev && \
-    rm -rf /var/lib/apt/lists/*
+# --- Umgebungsvariablen ---
+ENV DEBIAN_FRONTEND=noninteractive
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
 
-# Non-root User erstellen
-RUN useradd -ms /bin/bash builduser
-USER builduser
+# --- Systemabhängigkeiten ---
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip python3-venv git wget unzip curl build-essential \
+    libssl-dev libffi-dev openjdk-17-jdk \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Non-root User erstellen ---
+RUN useradd -m builduser
 WORKDIR /home/builduser
 
-# Python-Umgebung
-RUN python3 -m venv /home/builduser/.venv
-ENV PATH="/home/builduser/.venv/bin:$PATH"
+# --- Buildozer und Kivy installieren (für builduser) ---
+USER builduser
+RUN python3 -m venv .venv
+RUN . .venv/bin/activate && pip install --upgrade pip
+RUN . .venv/bin/activate && pip install buildozer==1.5.0 Cython==0.29.36 kivy==2.3.1
 
-# Buildozer und Kivy installieren
-RUN pip install --upgrade pip
-RUN pip install buildozer==1.5.0 Cython==0.29.36 kivy
-
-# Arbeitsverzeichnis für Builds
+# --- Arbeitsverzeichnis für App ---
 WORKDIR /home/builduser/app
 
-# Buildozer Allow Root (sicherheitshalber, CI-kompatibel)
-ENV BUILDOZER_ALLOW_ROOT=1
+# --- EntryPoint optional ---
+# ENTRYPOINT ["/bin/bash"]
