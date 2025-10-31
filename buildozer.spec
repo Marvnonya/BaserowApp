@@ -6,6 +6,7 @@ package.domain = org.example
 
 # Haupt-Datei
 source.main = main.py
+source.dir = .
 
 # Dateien/Ordner, die mit in die APK sollen
 source.include_exts = py,png,jpg,kv,json
