@@ -19,41 +19,57 @@ import os
 import re
 from datetime import datetime, date
 from dotenv import load_dotenv, set_key
-
+from pathlib import Path
 
 # --- Globale Session ---
 session = requests.Session()
-ENV_PATH = ".env"
-load_dotenv()  # Lädt alle Variablen aus .env ins Environment
-SHORTLINK = os.getenv("SHORTLINK")
+
+# Shortlink (hardcoded)
+SHORTLINK = "https://dein-shortlink/"
 
 if SHORTLINK is None:
-    raise ValueError("Kein SHORTLINK gesetzt! Bitte Environment-Variable prüfen.")
+    raise ValueError("Kein SHORTLINK gesetzt! Bitte SHORTLINK prüfen.")
 
 # ---------------------------------------------------
-# 🔹 Hilfsfunktionen
+# 🔹 Hilfsfunktionen für Android
+def get_env_path():
+    """Pfad für lokale .env im Android App-Speicher"""
+    app = App.get_running_app()
+    env_path = Path(app.user_data_dir) / ".env"
+    return env_path
+
+def load_local_env():
+    """Lädt die .env aus dem lokalen App-Speicher"""
+    env_path = get_env_path()
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path)
+    return env_path
+
+def save_env_variable(key, value):
+    """Speichert einen Key in der lokalen .env"""
+    env_path = get_env_path()
+    env_path.touch(exist_ok=True)
+    set_key(str(env_path), key, value)
+
 def verify_or_refresh_baserow_url(status_label=None):
     """
-    Prüft die BASEROW_URL oder holt sie über den Shortlink neu.
+    Prüft BASEROW_URL oder holt sie über den Shortlink neu.
     Entfernt /login, hängt /api/ an und speichert in .env.
-    Statusmeldungen optional über status_label ausgeben.
     """
-    load_dotenv()
-    baserow_url = None
+    env_path = load_local_env()
+    baserow_url = os.getenv("BASEROW_URL")
+
     try:
-        # Shortlink immer aufrufen
+        # Shortlink aufrufen
         r = requests.get(SHORTLINK, timeout=5, allow_redirects=True)
         if r.status_code == 200:
             final_url = r.url
-            # Falls URL auf /login endet, entfernen
             if final_url.endswith("/login"):
                 final_url = final_url[:-len("/login")]
-            # Sicherstellen, dass /api/ am Ende steht
             if not final_url.endswith("/api/"):
                 final_url = final_url.rstrip("/") + "/api/"
             baserow_url = final_url
-            # Speichern in .env
-            set_key(ENV_PATH, "BASEROW_URL", final_url)
+            save_env_variable("BASEROW_URL", final_url)
             msg = f"[INFO] BASEROW_URL aktualisiert: {final_url}"
             if status_label:
                 status_label.text = msg
@@ -68,12 +84,12 @@ def verify_or_refresh_baserow_url(status_label=None):
         if status_label:
             status_label.text = msg
         print(msg)
-    
+
     return baserow_url
 
 def login_to_baserow(status_label=None):
-    """Login via API Token"""
-    load_dotenv()
+    """Login via API Token, angepasst für Android"""
+    load_local_env()
     base_url = os.getenv("BASEROW_URL")
     api_token = os.getenv("API_TOKEN")
 
@@ -85,13 +101,12 @@ def login_to_baserow(status_label=None):
 
     session.headers.update({"Authorization": f"Token {api_token}"})
 
-    # Testen, ob der Token gültig ist, z.B. GET auf die erste Tabelle
     test_url = f"{base_url}database/rows/table/749/?user_field_names=true"
     try:
         r = session.get(test_url)
         if r.status_code == 200:
             if status_label:
-                status_label.text = "[OK] API Token gültig, Login erfolgreich"
+                status_label.text = "[OK] API Token gültig, Login erfolgreich ✅"
             print("[OK] API Token gültig, Login erfolgreich ✅")
             return True
         else:
@@ -105,16 +120,13 @@ def login_to_baserow(status_label=None):
         print(f"[ERROR] Fehler beim Token-Test: {e}")
         return False
 
-
-
-
 # ---------------------------------------------------
 # 🔹 Screens
 # ---------------------------------------------------
 class LoginScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        load_dotenv()
+        load_local_env()
         api_token = os.getenv("API_TOKEN", "")
 
         layout = BoxLayout(orientation="vertical", padding=10, spacing=5)
@@ -126,7 +138,6 @@ class LoginScreen(Screen):
         self.token_input = TextInput(text=api_token, multiline=False, password=True)
         layout.add_widget(self.token_input)
 
-        # Button zum Ein-/Ausblenden
         self.toggle_btn = Button(text="👁️ Token anzeigen")
         self.toggle_btn.bind(on_release=self.toggle_token)
         layout.add_widget(self.toggle_btn)
@@ -141,7 +152,6 @@ class LoginScreen(Screen):
 
         self.add_widget(layout)
 
-        # Auto-Login, falls Token vorhanden
         if api_token:
             Clock.schedule_once(lambda dt: self.try_login(auto=True), 0.1)
 
@@ -157,16 +167,13 @@ class LoginScreen(Screen):
             self.status_label.text = "Token fehlt!"
             return
 
-        # Session Header setzen
         session.headers.update({"Authorization": f"Token {token}"})
 
-        # Base URL holen
-        load_dotenv()
+        load_local_env()
         base_url = os.getenv("BASEROW_URL")
         if not base_url:
             base_url = verify_or_refresh_baserow_url(self.status_label)
 
-        # Testaufruf: GET auf Tabelle 749, statt /user/me/
         test_url = f"{base_url}database/rows/table/749/?user_field_names=true"
         try:
             r = session.get(test_url, timeout=10)
@@ -174,7 +181,7 @@ class LoginScreen(Screen):
                 self.status_label.text = "Hauptmenü"
                 print("[OK] Login erfolgreich mit API Token ✅")
                 if save:
-                    set_key(".env", "API_TOKEN", token)
+                    save_env_variable("API_TOKEN", token)
                 if self.manager:
                     self.manager.current = "main_menu"
             else:
@@ -283,7 +290,7 @@ class AddProbeScreen(Screen):
     def prefill_last_probe(self):
         """Ermittelt die letzte normale Probe und zählt die Nummer +1 hoch."""
         try:
-            load_dotenv()
+            load_local_env()
             base_url = os.getenv("BASEROW_URL")
             api_token = os.getenv("API_TOKEN")
             if not base_url or not api_token:
@@ -329,7 +336,7 @@ class AddProbeScreen(Screen):
     def create_probe(self, instance):
         """Erstellt eine neue Probe, prüft auf Duplikate nach Datum."""
         try:
-            load_dotenv()
+            load_local_env()
             base_url = os.getenv("BASEROW_URL")
             api_token = os.getenv("API_TOKEN")
             if not base_url or not api_token:
@@ -412,7 +419,7 @@ class EditProbeScreen(Screen):
     def load_proben(self):
         """Lädt alle Proben in eine Scrollliste."""
         try:
-            load_dotenv()
+            load_local_env()
             base_url = os.getenv("BASEROW_URL")
             api_token = os.getenv("API_TOKEN")
 
@@ -653,7 +660,7 @@ class EditSelectedProbeScreen(Screen):
         self.grid.clear_widgets()
         self.status_label.text = f"Lade Probe {probe_id} ..."
 
-        load_dotenv()
+        load_local_env()
         base_url = os.getenv("BASEROW_URL")
         api_token = os.getenv("API_TOKEN")
         if not base_url or not api_token:
@@ -824,7 +831,7 @@ class EditSelectedProbeScreen(Screen):
             self.status_label.text = "Keine Probe geladen"
             return
 
-        load_dotenv()
+        load_local_env()
         base_url = os.getenv("BASEROW_URL")
         api_token = os.getenv("API_TOKEN")
         if not base_url or not api_token:
@@ -959,7 +966,7 @@ class AddSheetMusicScreen(Screen):
 
     def load_existing_options(self):
         """Lädt vorhandene Heft/Noten und Komponisten aus Tabelle 747"""
-        load_dotenv()
+        load_local_env()
         base_url = os.getenv("BASEROW_URL")
         api_token = os.getenv("API_TOKEN")
         if not base_url or not api_token:
@@ -998,7 +1005,7 @@ class AddSheetMusicScreen(Screen):
 
         print("[DEBUG] Payload to send:", payload)
 
-        load_dotenv()
+        load_local_env()
         base_url = os.getenv("BASEROW_URL")
         api_token = os.getenv("API_TOKEN")
         if not base_url or not api_token:
