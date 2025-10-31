@@ -1,0 +1,15 @@
+# Virtuelle Umgebung
+venv/
+
+# Private Environment-Variablen
+.env
+
+# Python Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build/Release Dateien
+*.apk
+*.egg-info/
