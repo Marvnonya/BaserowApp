@@ -42,6 +42,12 @@ jobs:
 
       - name: Prüfen Buildozer Version
         run: buildozer --version
+        
+      - name: Android SDK Lizenzen akzeptieren
+        run: |
+          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+          yes | sdkmanager --licenses
 
       - name: APK bauen (inkl. SDK/NDK Installation & Lizenz-Akzeptanz)
         run: buildozer android debug --accept-sdk-licenses
