@@ -17,9 +17,9 @@ jobs:
       - name: Repository auschecken
         uses: actions/checkout@v3
 
-      # 2️⃣ Docker Buildozer Container nutzen
-      - name: APK bauen mit Docker (non-root)
-        run: docker run --rm -v $PWD:/app -w /app --user $(id -u):$(id -g) -e SHORTLINK=${{ secrets.SHORTLINK }} ghcr.io/kivy/buildozer:latest buildozer android debug
+      # 2️⃣ APK bauen mit Docker (in einer Zeile, non-root, Container-intern)
+      - name: APK bauen mit Docker
+        run: docker run --rm -v $PWD:/app:ro -w /home/user -e SHORTLINK=${{ secrets.SHORTLINK }} ghcr.io/kivy/buildozer:latest /bin/bash -c "mkdir -p buildozer_src && cp -r /app/* buildozer_src && cd buildozer_src && buildozer android debug && cp bin/*.apk /app/bin/"
 
       # 3️⃣ APK hochladen
       - name: APK hochladen
