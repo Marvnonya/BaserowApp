@@ -13,11 +13,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Repo auschecken
       - name: Repository auschecken
         uses: actions/checkout@v3
 
-      - name: Docker Container starten und APK bauen
+      # 2️⃣ Docker Buildozer Container nutzen
+      - name: APK bauen mit Docker
         run: |
-          docker run --rm -v $PWD:/app -w /app \
-          ghcr.io/kivy/buildozer:latest \
-          /bin/bash -c "buildozer android debug"
+          docker run --rm \
+            -v $PWD:/app \
+            -w /app \
+            -e BUILDOSER_ALLOW_ROOT=1 \
+            -e SHORTLINK=${{ secrets.SHORTLINK }} \
+            ghcr.io/kivy/buildozer:latest \
+            buildozer android debug
+
+      # 3️⃣ APK hochladen
+      - name: APK hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: baserowapp-apk
+          path: bin/*.apk
