@@ -23,7 +23,8 @@ jobs:
 
       # 3️⃣ APK bauen im Container
       - name: APK bauen
-        run: docker run --rm -v $PWD:/home/builduser/app -w /home/builduser/app -e SHORTLINK=${{ secrets.SHORTLINK }} baserow-buildozer /bin/bash -c "buildozer android debug"
+        run: docker run --rm -w /home/builduser/app -e SHORTLINK=${{ secrets.SHORTLINK }} baserow-buildozer /bin/bash -c "mkdir -p /home/builduser/app && cd /home/builduser/app && cp -r /host_app/* . && buildozer android debug"
+
 
 
       # 4️⃣ APK hochladen
