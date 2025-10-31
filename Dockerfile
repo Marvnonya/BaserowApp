@@ -23,6 +23,18 @@ RUN python3 -m venv /home/builduser/.venv \
     && /home/builduser/.venv/bin/pip install --upgrade pip setuptools wheel \
     && /home/builduser/.venv/bin/pip install buildozer==1.5.0 Cython==0.29.36 kivy==2.3.1
 
+# <-- NEUER BLOCK: preinstall P4A / buildozer runtime deps in venv (wichtig)
+RUN /home/builduser/.venv/bin/pip install \
+    appdirs \
+    colorama>=0.3.3 \
+    jinja2 \
+    "sh>=1.10,<2.0" \
+    build \
+    toml \
+    packaging \
+    setuptools \
+    wheel || true
+
 # Stelle sicher, dass venv bin in PATH ist (für non-root execution)
 ENV PATH="/home/builduser/.venv/bin:${PATH}"
 
