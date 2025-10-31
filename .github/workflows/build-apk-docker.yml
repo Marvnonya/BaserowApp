@@ -20,13 +20,8 @@ jobs:
       # 2️⃣ Docker Buildozer Container nutzen
       - name: APK bauen mit Docker
         run: |
-          docker run --rm \
-            -v $PWD:/app \
-            -w /app \
-            -e BUILDOZER_ALLOW_ROOT=1
-            -e SHORTLINK=${{ secrets.SHORTLINK }} \
-            ghcr.io/kivy/buildozer:latest \
-            buildozer android debug
+          docker run --rm -v $PWD:/app -w /app -e BUILDOZER_ALLOW_ROOT=1 -e SHORTLINK=${{ secrets.SHORTLINK }} ghcr.io/kivy/buildozer:latest buildozer android debug
+
 
       # 3️⃣ APK hochladen
       - name: APK hochladen
