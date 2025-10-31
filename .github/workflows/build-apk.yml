@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Repository auschecken
+        uses: actions/checkout@v3
 
       - name: System-Abhängigkeiten installieren
         run: |
@@ -31,8 +32,27 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython kivy requests python-dotenv
 
+      - name: cmdline-tools & SDK vorbereiten
+        run: |
+          ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+
+          # cmdline-tools herunterladen, falls noch nicht vorhanden
+          if [ ! -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
+            curl -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+            unzip commandlinetools.zip
+            mv cmdline-tools latest
+          fi
+
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+
+          # Build-Tools, Plattformen, platform-tools installieren + Lizenzen akzeptieren
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "build-tools;36.1.0" "platforms;android-36"
+
       - name: APK bauen
-        run: buildozer android debug --accept-sdk-licenses
+        run: buildozer android debug
 
       - name: APK hochladen
         uses: actions/upload-artifact@v4
