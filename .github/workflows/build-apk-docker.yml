@@ -1,4 +1,4 @@
-name: Build APK (Docker image)
+name: Build APK (Docker)
 
 on:
   push:
@@ -10,22 +10,47 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     env:
+      # SHORTLINK aus den Repository-Secrets
       SHORTLINK: ${{ secrets.SHORTLINK }}
 
     steps:
+      # 1) Repo auschecken
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2) Sicherstellen, dass lokale Skripte ausführbar sind (damit COPY in Docker die Bits übernimmt)
+      - name: Ensure entrypoint & scripts are executable
+        run: |
+          if [ -f ./entrypoint.sh ]; then chmod +x ./entrypoint.sh || true; fi
+          if [ -d ./scripts ]; then find ./scripts -type f -name "*.sh" -exec chmod +x {} \; || true; fi
+          echo "Listing entrypoint and scripts:"
+          ls -la entrypoint.sh || true
+          ls -la scripts || true
+
+      # 3) Docker-Image bauen
       - name: Build Docker image
         run: docker build -t baserow-buildozer .
 
-     - name: Build APK (containerized)
-       run: docker run --rm -v ${{ github.workspace }}:/home/builduser/app -e SHORTLINK="${SHORTLINK}" baserow-buildozer
+      # 4) APK bauen (Container ausführen) — sauberer multi-line Block ohne fehlerhafte Backslashes
+      - name: Build APK (run container)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}":/home/builduser/app \
+            -e SHORTLINK="$SHORTLINK" \
+            baserow-buildozer
 
+      # 5) Optional: Liste .buildozer Ordner für Debugging (falls nötig)
+      - name: Debug: show build folders (if any)
+        if: always()
+        run: |
+          echo "Show .buildozer tree (if exists):"
+          ls -la . || true
+          ls -la ./.buildozer || true
+          find ./.buildozer -maxdepth 3 -type f -print || true
 
+      # 6) APK als Artifact hochladen (Wildcard für verschiedene build-archs)
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: baserow-app-apk
-          # Pfad ggf. anpassen, falls Buildozer andere arch/naming nutzt
-          path: ./.buildozer/android/platform/build-arm64-v8a/dists/*/bin/*.apk
+          path: ./.buildozer/android/platform/build-*/dists/*/bin/*.apk
