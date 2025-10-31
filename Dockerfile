@@ -1,29 +1,26 @@
-# --- Basisimage ---
 FROM ubuntu:22.04
 
-# --- Umgebungsvariablen ---
 ENV DEBIAN_FRONTEND=noninteractive
-ENV ANDROID_HOME=/opt/android-sdk
-ENV PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
 
-# --- Systemabhängigkeiten ---
+# Systemabhängigkeiten
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-venv git wget unzip curl build-essential \
     libssl-dev libffi-dev openjdk-17-jdk \
     && rm -rf /var/lib/apt/lists/*
 
-# --- Non-root User erstellen ---
+# User anlegen
 RUN useradd -m builduser
+USER builduser
 WORKDIR /home/builduser
 
-# --- Buildozer und Kivy installieren (für builduser) ---
-USER builduser
+# Python venv und Buildozer installieren
 RUN python3 -m venv .venv
-RUN . .venv/bin/activate && pip install --upgrade pip
-RUN . .venv/bin/activate && pip install buildozer==1.5.0 Cython==0.29.36 kivy==2.3.1
+RUN .venv/bin/pip install --upgrade pip
+RUN .venv/bin/pip install buildozer==1.5.0 Cython==0.29.36 kivy==2.3.1
 
-# --- Arbeitsverzeichnis für App ---
+# Arbeitsverzeichnis App
 WORKDIR /home/builduser/app
+RUN mkdir -p /home/builduser/app/.buildozer
 
-# --- EntryPoint optional ---
-# ENTRYPOINT ["/bin/bash"]
+# PATH für venv
+ENV PATH="/home/builduser/.venv/bin:$PATH"
