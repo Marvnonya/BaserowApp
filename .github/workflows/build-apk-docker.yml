@@ -19,11 +19,9 @@ jobs:
       - name: Build Docker image
         run: docker build -t baserow-buildozer .
 
-      - name: Build APK (containerized)
-        run: docker run --rm \
-              -v ${{ github.workspace }}:/home/builduser/app \
-              -e SHORTLINK="${SHORTLINK}" \
-              baserow-buildozer
+     - name: Build APK (containerized)
+       run: docker run --rm -v ${{ github.workspace }}:/home/builduser/app -e SHORTLINK="${SHORTLINK}" baserow-buildozer
+
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
