@@ -1,17 +1,26 @@
 #!/bin/bash
-# /usr/local/bin/entrypoint.sh
-
 set -euo pipefail
 
 echo "[entrypoint] SHORTLINK=${SHORTLINK:-<not-set>}"
 
-# Wenn root, versuche Besitz des mount-Pfades zu übernehmen (falls möglich)
+# Default command if none provided
+if [ $# -eq 0 ]; then
+  set -- buildozer android debug
+fi
+
+# If running as root, try to chown the mounted app folder (if possible),
+# then run the command as builduser while explicitly exporting the venv PATH.
 if [ "$(id -u)" -eq 0 ]; then
-    echo "[entrypoint] running as root — attempting chown of /home/builduser/app ..."
-    chown -R builduser:builduser /home/builduser/app 2>/dev/null || true
-    # Führe Kommando als builduser aus (ohne '-' um PATH intakt zu lassen)
-    exec su builduser -c "$@"
+  echo "[entrypoint] running as root — attempting chown of /home/builduser/app ..."
+  chown -R builduser:builduser /home/builduser/app 2>/dev/null || true
+
+  # Build command as a string
+  CMD="$*"
+
+  # Run as builduser but ensure venv bin is in PATH
+  exec su builduser -s /bin/bash -c "export PATH=/home/builduser/.venv/bin:\$PATH; $CMD"
 else
-    echo "[entrypoint] running as non-root (uid $(id -u)) — executing command directly"
-    exec "$@"
+  # already non-root: ensure PATH then exec
+  export PATH="/home/builduser/.venv/bin:${PATH}"
+  exec "$@"
 fi
