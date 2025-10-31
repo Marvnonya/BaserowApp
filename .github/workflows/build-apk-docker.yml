@@ -45,8 +45,13 @@ jobs:
         run: |
           echo "Show .buildozer tree (if exists):"
           ls -la . || true
-          ls -la ./.buildozer || true
-          find ./.buildozer -maxdepth 3 -type f -print || true
+          if [ -d ".buildozer" ]; then
+            ls -la ./.buildozer || true
+            find ./.buildozer -maxdepth 3 -type f -print || true
+          else
+            echo ".buildozer folder does not exist"
+          fi
+
 
       # 6) APK als Artifact hochladen (Wildcard für verschiedene build-archs)
       - name: Upload APK Artifact
