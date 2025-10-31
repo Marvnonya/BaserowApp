@@ -18,7 +18,7 @@ ENV PATH="/home/builduser/.venv/bin:$PATH"
 
 # Buildozer und Kivy installieren
 RUN pip install --upgrade pip
-RUN pip install buildozer==1.5.0 Cython==0.29.36 kivy==2.3.2
+RUN pip install buildozer==1.5.0 Cython==0.29.36 kivy
 
 # Arbeitsverzeichnis für Builds
 WORKDIR /home/builduser/app
