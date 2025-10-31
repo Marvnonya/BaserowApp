@@ -17,12 +17,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Docker Image bauen
+      # 2️⃣ Ausführbare Dateien erzwingen
+      - name: Set Executable Permissions
+        run: |
+          # Beispiel: falls du entrypoint.sh oder andere Skripte hast
+          chmod +x ./entrypoint.sh
+          # Optional alle .sh in scripts/:
+          if [ -d ./scripts ]; then chmod +x ./scripts/*.sh; fi
+          # Prüfen:
+          ls -l ./entrypoint.sh
+          if [ -d ./scripts ]; then ls -l ./scripts; fi
+
+      # 3️⃣ Docker Image bauen
       - name: Build Docker Image
         run: |
           docker build -t baserow-buildozer .
 
-      # 3️⃣ APK bauen mit Docker
+      # 4️⃣ APK bauen mit Docker
       - name: Build APK
         run: |
           docker run --rm \
@@ -32,7 +43,7 @@ jobs:
             baserow-buildozer \
             /bin/bash -c "buildozer android debug"
 
-      # 4️⃣ APK als Artifact hochladen
+      # 5️⃣ APK als Artifact hochladen
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
