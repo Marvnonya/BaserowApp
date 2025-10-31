@@ -32,12 +32,9 @@ jobs:
         run: docker build -t baserow-buildozer .
 
       # 4) APK bauen (Container ausführen) — sauberer multi-line Block ohne fehlerhafte Backslashes
-      - name: Build APK (run container)
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}":/home/builduser/app \
-            -e SHORTLINK="$SHORTLINK" \
-            baserow-buildozer
+     - name: Build APK (containerized)
+       run: docker run --rm -v "${{ github.workspace }}":/home/builduser/app -e SHORTLINK="${{ secrets.SHORTLINK }}" baserow-buildozer
+
 
       # 5) Optional: Liste .buildozer Ordner für Debugging (falls nötig)
       - name: "Debug: show build folders (if any)"
