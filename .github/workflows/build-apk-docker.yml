@@ -1,4 +1,4 @@
-name: Build APK (Docker, Stable)
+name: Build APK (Custom Docker)
 
 on:
   push:
@@ -13,15 +13,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Repository auschecken
+      # 1️⃣ Repo auschecken
       - name: Repository auschecken
         uses: actions/checkout@v3
 
-      # 2️⃣ APK bauen in Container-internem Verzeichnis (non-interaktiv, root erlaubt)
-      - name: APK bauen mit Docker
-        run: docker run --rm -v $PWD:/app:ro -w /home/user -e SHORTLINK=${{ secrets.SHORTLINK }} -e BUILDOZER_ALLOW_ROOT=1 ghcr.io/kivy/buildozer:latest /bin/bash -c "mkdir -p buildozer_src && cp -r /app/* buildozer_src && cd buildozer_src && buildozer android debug && mkdir -p /app/bin && cp bin/*.apk /app/bin/"
+      # 2️⃣ Docker-Image bauen
+      - name: Docker Image bauen
+        run: docker build -t baserow-buildozer .
 
-      # 3️⃣ APK hochladen als Artifact
+      # 3️⃣ APK bauen im Container
+      - name: APK bauen
+        run: docker run --rm \
+          -v $PWD:/home/builduser/app \
+          -w /home/builduser/app \
+          -e SHORTLINK=${{ secrets.SHORTLINK }} \
+          baserow-buildozer \
+          /bin/bash -c "buildozer android debug"
+
+      # 4️⃣ APK hochladen
       - name: APK hochladen
         uses: actions/upload-artifact@v4
         with:
