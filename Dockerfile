@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 # Neuen User anlegen
 RUN useradd -m builduser
 
-# Prepare folders (root)
+# Prepare folders (root) und owner setzen
 RUN mkdir -p /home/builduser/app /usr/local/bin \
  && chown -R builduser:builduser /home/builduser
 
@@ -20,7 +20,6 @@ RUN mkdir -p /home/builduser/app /usr/local/bin \
 USER builduser
 WORKDIR /home/builduser
 
-# Python venv + Buildozer + typische p4a/runtime deps
 RUN python3 -m venv /home/builduser/.venv \
  && /home/builduser/.venv/bin/pip install --upgrade pip setuptools wheel \
  && /home/builduser/.venv/bin/pip install buildozer==1.5.0 Cython==0.29.36 kivy==2.3.1 \
@@ -35,19 +34,18 @@ RUN python3 -m venv /home/builduser/.venv \
     setuptools \
     wheel \
     requests \
-    pyparsing || true
+    pyparsing \
+    importlib_metadata || true
 
 # PATH so that venv binaries are available
 ENV PATH="/home/builduser/.venv/bin:${PATH}"
 
-# Zurück zu root, um entrypoint zu kopieren + Rechte zu setzen
+# Zurück zu root, um entrypoint zu kopieren und Rechte zu setzen
 USER root
 
-# Copy entrypoint (achte darauf, entrypoint.sh im Repo-Root zu haben)
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh && chown root:root /usr/local/bin/entrypoint.sh
 
-# Default workdir for app
 WORKDIR /home/builduser/app
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
