@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK (Docker image)
 
 on:
   push:
@@ -13,50 +13,21 @@ jobs:
       SHORTLINK: ${{ secrets.SHORTLINK }}
 
     steps:
-      # 1️⃣ Repository auschecken
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # 2️⃣ Ausführbare Dateien für Build erzwingen
-      - name: Set Executable Permissions
-        run: |
-          echo "Setze Executable Permissions …"
+      - name: Build Docker image
+        run: docker build -t baserow-buildozer .
 
-          # Alle shell scripts im Root
-          find . -maxdepth 1 -name "*.sh" -exec chmod +x {} \;
+      - name: Build APK (containerized)
+        run: docker run --rm \
+              -v ${{ github.workspace }}:/home/builduser/app \
+              -e SHORTLINK="${SHORTLINK}" \
+              baserow-buildozer
 
-          # Alle shell scripts in scripts/ falls vorhanden
-          if [ -d ./scripts ]; then
-            find ./scripts -name "*.sh" -exec chmod +x {} \;
-          fi
-
-          # .buildozer und Unterordner falls vorhanden
-          if [ -d ./.buildozer ]; then
-            find ./.buildozer -type f -exec chmod +x {} \;
-          fi
-
-          # Prüfen
-          echo "Rechte überprüft:"
-          find . -maxdepth 2 -type f -exec ls -l {} \;
-
-      # 3️⃣ Docker Image bauen
-      - name: Build Docker Image
-        run: |
-          docker build -t baserow-buildozer .
-
-      # 4️⃣ APK bauen mit Docker
-      - name: Build APK
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/home/builduser/app \
-            -w /home/builduser/app \
-            -e SHORTLINK="${SHORTLINK}" \
-            baserow-buildozer \
-            /bin/bash -c "buildozer android debug"
-
-      # 5️⃣ APK als Artifact hochladen
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: baserow-app-apk
-          path: ./.buildozer/android/platform/build-arm64-v8a/dists/BaserowApp/bin/*.apk
+          # Pfad ggf. anpassen, falls Buildozer andere arch/naming nutzt
+          path: ./.buildozer/android/platform/build-arm64-v8a/dists/*/bin/*.apk
