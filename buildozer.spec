@@ -37,7 +37,7 @@ android.permissions = INTERNET
 [buildozer]
 # Log-Level (1 = Fehler, 2 = Info, 3 = Debug)
 log_level = 2
-warn_on_root = 1
+warn_on_root = 0
 
 # Pfad für den Build-Output
 # bin_dir = bin
